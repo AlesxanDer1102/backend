@@ -9,28 +9,14 @@ class BookService:
         self.repo = book_repo
 
     async def getBooks(self,params : SearchBookDto) -> list[Book] :
-        data = []
-        
-        if params.limit is not None and params.offset is not None:
-            data = self.repo.get_books(
-                title=params.title,
-                author=params.author,
-                limit=params.limit,
-                offset=params.offset
-            )
-        elif params.limit is not None:
-            data = self.repo.get_books(
-                title=params.title,
-                author=params.author,
-                limit=params.limit
-            )
-        else:
-            data = self.repo.get_books(
-                title=params.title,
-                author=params.author
-            )
-        
-        return data
+        # El BookQueryBuilder  ignora los filtros None,
+        # por lo que ya no se necesitan condicionales para limit u offset.
+        return self.repo.get_books(
+            title=params.title,
+            author=params.author,
+            limit=params.limit,
+            offset=params.offset
+        )
 
     async def registerBook(self, book : RegisterBookDto) -> int | None:
         toCreate = Book(

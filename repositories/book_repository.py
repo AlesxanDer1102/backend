@@ -4,6 +4,7 @@ from db.models.autor import Autor
 from db.models.genero import Genero
 from db.models.libro import Libro
 from domain.book import Book
+from repositories.book_query_builder import BookQueryBuilder
 from datetime import date
 from typing import Optional
 
@@ -20,34 +21,21 @@ class BookRepository:
         language: Optional[str] = None,
         from_date: Optional[date] = None,
         to_date: Optional[date] = None,
-        limit: int = 20,
-        offset: int = 0
+        limit: Optional[int] = None,
+        offset: Optional[int] = None
     ) -> list[Book]:
-        query = select(Libro)
-
-        if title:
-            query = query.where(Libro.titulo.ilike(f"%{title}%"))
-
-        if language:
-            query = query.where(Libro.lenguaje == language)
-
-        if author:
-            query = query.join(Libro.autores).where(
-                Autor.nombre.ilike(f"%{author}%")
-            )
-
-        if genre:
-            query = query.join(Libro.generos).where(
-                Genero.nombre.ilike(f"%{genre}%")
-            )
-
-        if from_date:
-            query = query.where(from_date <= Libro.fecha_publicacion)
-
-        if to_date:
-            query = query.where(Libro.fecha_publicacion <= to_date)
-
-        query = query.distinct().order_by(Libro.id).offset(offset).limit(limit)
+        # patron builder : se delega la construccion de la query al BookQueryBuilder
+        query = (
+            BookQueryBuilder()
+            .with_title(title)
+            .with_author(author)
+            .with_genre(genre)
+            .with_language(language)
+            .published_from(from_date)
+            .published_until(to_date)
+            .paginate(limit, offset)
+            .build()
+        )
         libros = list(self.db.execute(query).scalars().all())
         return [self._to_domain(libro) for libro in libros]
 
